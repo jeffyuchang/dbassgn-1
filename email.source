@@ -1,0 +1,171 @@
+---------------------------------------------------------------------------
+--
+-- email.sql
+--
+---------------------------------------------------------------------------
+
+-----------------------------
+-- Creating a new type:
+--	We are going to create a new type called 'email' which represents
+--	email address.
+--	A user-defined type must have an input and an output function, and
+--	optionally can have binary input and output functions.  All of these
+--	are usually user-defined C functions.
+-----------------------------
+
+-- Assume the user defined functions are in _OBJWD_/email$DLSUFFIX
+-- (we do not want to assume this is in the dynamic loader search path).
+-- Look at $PWD/email.c for the source.  Note that we declare all of
+-- them as STRICT, so we do not need to cope with NULL inputs in the
+-- C code.  We also mark them IMMUTABLE, since they always return the
+-- same outputs given the same inputs.
+
+-- the input function 'email_in' takes a null-terminated string (the
+-- textual representation of the type) and turns it into the internal
+-- (in memory) representation. You will get a message telling you 'complex'
+-- does not exist yet but that's okay.
+
+CREATE FUNCTION email_in(cstring)
+   RETURNS email
+   AS '_OBJWD_/email'
+   LANGUAGE C IMMUTABLE STRICT;
+
+-- the output function 'email_out' takes the internal representation and
+-- converts it into the textual representation.
+
+CREATE FUNCTION email_out(email)
+   RETURNS cstring
+   AS '_OBJWD_/email'
+   LANGUAGE C IMMUTABLE STRICT;
+
+-- the binary input function 'email_recv' takes a StringInfo buffer
+-- and turns its contents into the internal representation.
+
+CREATE FUNCTION email_recv(internal)
+   RETURNS email
+   AS '_OBJWD_/email'
+   LANGUAGE C IMMUTABLE STRICT;
+
+-- the binary output function 'email_send' takes the internal representation
+-- and converts it into a (hopefully) platform-independent bytea string.
+
+CREATE FUNCTION email_send(email)
+   RETURNS bytea
+   AS '_OBJWD_/email'
+   LANGUAGE C IMMUTABLE STRICT;
+
+
+-- now, we can create the type. The internallength specifies the size of the
+-- memory block required to hold the type (we need two 8-byte doubles).
+
+CREATE TYPE email (
+   internallength = 256,
+   input = email_in,
+   output = email_out,
+   receive = email_recv,
+   send = email_send,
+   alignment = double
+);
+
+
+-----------------------------
+-- Using the new type:
+--	user-defined types can be used like ordinary built-in types.
+-----------------------------
+
+CREATE TABLE test_email (
+	a	email,
+	b	email	
+);
+
+-- data for user-defined types are just strings in the proper textual
+-- representation.
+
+INSERT INTO test_email VALUES ('jeff@cse.unsw.edu.au', 'young@cse.unsw.edu.au');
+INSERT INTO test_email VALUES ('jeffyu@cse.unsw.edu.au', 'young_son@cse.unsw.edu.au');
+
+SELECT * FROM test_email;
+
+
+-----------------------------
+-- Interfacing New Types with Indexes:
+--	We cannot define a secondary index (eg. a B-tree) over the new type
+--	yet. We need to create all the required operators and support
+--      functions, then we can make the operator class.
+-----------------------------
+
+-- first, define the required operators
+CREATE FUNCTION email_eq(email, email) RETURNS bool
+   AS '_OBJWD_/email' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION email_neq(email, email) RETURNS bool
+   AS '_OBJWD_/email' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION email_gt(email, email) RETURNS bool
+   AS '_OBJWD_/email' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION email_ge(email, email) RETURNS bool
+   AS '_OBJWD_/email' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION email_lt(email, email) RETURNS bool
+   AS '_OBJWD_/email' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION email_le(email, email) RETURNS bool
+   AS '_OBJWD_/email' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION email_sd(email, email) RETURNS bool
+   AS '_OBJWD_/email' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION email_nsd(email, email) RETURNS bool
+   AS '_OBJWD_/email' LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OPERATOR < (
+   leftarg = email, rightarg = email, procedure = email_lt,
+   commutator = > , negator = >= ,
+   restrict = scalarltsel, join = scalarltjoinsel
+);
+CREATE OPERATOR <= (
+   leftarg = email, rightarg = email, procedure = email_le,
+   commutator = >= , negator = > ,
+   restrict = scalarltsel, join = scalarltjoinsel
+);
+CREATE OPERATOR = (
+   leftarg = email, rightarg = email, procedure = email_eq,
+   commutator = = ,
+   negator = <> ,
+   restrict = eqsel, join = eqjoinsel
+);
+CREATE OPERATOR >= (
+   leftarg = email, rightarg = email, procedure = email_neq,
+   commutator = <= , negator = < ,
+   restrict = scalargtsel, join = scalargtjoinsel
+);
+CREATE OPERATOR > (
+   leftarg = email, rightarg = email, procedure = email_gt,
+   commutator = < , negator = <= ,
+   restrict = scalargtsel, join = scalargtjoinsel
+);
+CREATE OPERATOR <> (
+   leftarg = email, rightarg = email, procedure = email_neq,
+   commutator = <> , negator = = ,
+   restrict = neqsel, join = neqjoinsel
+);
+CREATE OPERATOR ~ (
+   leftarg = email, rightarg = email, procedure = email_sd,
+   commutator = ~ , negator = !~
+);
+CREATE OPERATOR !~ (
+   leftarg = email, rightarg = email, procedure = email_nsd,
+   commutator = !~ , negator = ~
+);
+
+
+-- now we can make the operator class
+CREATE OPERATOR CLASS email_ops
+    DEFAULT FOR TYPE email USING btree AS
+        OPERATOR        1       < ,
+        OPERATOR        2       <= ,
+        OPERATOR        3       = ,
+        OPERATOR        4       >= ,
+        OPERATOR        5       > ,
+		OPERATOR        6       <>,
+		OPERATOR        7       ~ ,
+		OPERATOR        8       !~ ;				
+
+
+-- clean up the example
+DROP TABLE test_email;
+DROP TYPE email CASCADE;
