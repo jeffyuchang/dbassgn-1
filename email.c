@@ -11,6 +11,9 @@
 
 #include "fmgr.h"
 #include "libpq/pqformat.h"		/* needed for send/recv functions */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 
 PG_MODULE_MAGIC;
@@ -125,10 +128,16 @@ email_eq(PG_FUNCTION_ARGS)
 {
 	Email    *a = (Email *) PG_GETARG_POINTER(0);
 	Email    *b = (Email *) PG_GETARG_POINTER(1);
-
-	PG_RETURN_BOOL(true);
+	PG_RETURN_BOOL(is_email_eq(a, b));
 }
 
+boolean is_email_eq(Email *e1, Email *e2) {
+    if ((strcmp(e1->local, e2->local) == 0) 
+        && (strcmp(e1->domain, e2->domain) == 0)) {
+	    return true
+	}
+	return false;	
+}
 
 PG_FUNCTION_INFO_V1(email_neq);
 
@@ -136,9 +145,8 @@ Datum
 email_neq(PG_FUNCTION_ARGS)
 {
 	Email   *a = (Email *) PG_GETARG_POINTER(0);
-	Email    *b = (Email *) PG_GETARG_POINTER(1);
-
-	PG_RETURN_BOOL(true);
+	Email   *b = (Email *) PG_GETARG_POINTER(1);
+	PG_RETURN_BOOl(!is_email_eq(a,b));
 }
 
 PG_FUNCTION_INFO_V1(email_gt);
@@ -148,8 +156,16 @@ email_gt(PG_FUNCTION_ARGS)
 {
 	Email    *a = (Email *) PG_GETARG_POINTER(0);
 	Email    *b = (Email *) PG_GETARG_POINTER(1);
+	PG_RETURN_BOOL(is_email_gt(a, b));
+}
 
-	PG_RETURN_BOOL(complex_abs_cmp_internal(a, b) <= 0);
+boolean is_email_gt(Email *e1, Email *e2) {
+	if (strcmp(a->domain,b->domain) > 0) {
+		return true;
+	} else if (strcmp(a->domain, b->domain) == 0 && strcmp(a->local, b->local) > 0) {
+		return true;
+	}
+	return false;	
 }
 
 PG_FUNCTION_INFO_V1(email_sd);
@@ -159,8 +175,8 @@ email_sd(PG_FUNCTION_ARGS)
 {
 	Email    *a = (Email *) PG_GETARG_POINTER(0);
 	Email    *b = (Email *) PG_GETARG_POINTER(1);
-
-	PG_RETURN_BOOL(a->domain == b->domain);
+		
+	PG_RETURN_BOOL(strcmp(a->domain,b->domain) == 0);
 }
 
 PG_FUNCTION_INFO_V1(email_nsd);
@@ -171,7 +187,7 @@ email_nsd(PG_FUNCTION_ARGS)
 	Email    *a = (Email *) PG_GETARG_POINTER(0);
 	Email    *b = (Email *) PG_GETARG_POINTER(1);
 
-	PG_RETURN_BOOL(a->domain == b->domain);
+	PG_RETURN_BOOL(strcmp(a->domain, b->domain) != 0);
 }
 
 PG_FUNCTION_INFO_V1(email_ge);
@@ -182,7 +198,7 @@ email_ge(PG_FUNCTION_ARGS)
 	Email    *a = (Email *) PG_GETARG_POINTER(0);
 	Email    *b = (Email *) PG_GETARG_POINTER(1);
 
-	PG_RETURN_BOOL(true);
+	PG_RETURN_BOOL(!is_email_lt(a,b));
 }
 
 PG_FUNCTION_INFO_V1(email_lt);
@@ -193,8 +209,18 @@ email_lt(PG_FUNCTION_ARGS)
 	Email    *a = (Email *) PG_GETARG_POINTER(0);
 	Email    *b = (Email *) PG_GETARG_POINTER(1);
 
-	PG_RETURN_INT32(true);
+	PG_RETURN_BOOL(is_email_lt(a,b));
 }
+
+boolean is_email_lt(Email *e1, Email *e2){
+	if (strcmp(e1->domain, e2->domain) < 0) {
+		return true;
+	} else if (strcmp(e1->domain, e2->domain) == 0 && strcmp(e1->local, e2->local) < 0) {
+		return true;
+	}
+	return false;
+}
+
 
 PG_FUNCTION_INFO_V1(email_le);
 
@@ -203,6 +229,5 @@ email_le(PG_FUNCTION_ARGS)
 {
 	Email    *a = (Email *) PG_GETARG_POINTER(0);
 	Email    *b = (Email *) PG_GETARG_POINTER(1);
-
-	PG_RETURN_INT32(true);
+	return PG_RETURN_BOOL(!is_email_gt(a,b));
 }
