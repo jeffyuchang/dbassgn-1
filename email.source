@@ -164,9 +164,6 @@ CREATE OPERATOR CLASS email_ops
         OPERATOR        3       = ,
         OPERATOR        4       >= ,
         OPERATOR        5       > ,
---	OPERATOR        6       <> ,
---	OPERATOR        7       ~  ,
---	OPERATOR        8       !~ ,
 	FUNCTION	1	email_cmp(EmailAddress, EmailAddress);			
 
 CREATE INDEX test_cplx_ind ON test_email

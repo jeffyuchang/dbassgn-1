@@ -310,9 +310,14 @@ email_cmp(PG_FUNCTION_ARGS)
 {
 	Email    *a = (Email *) PG_GETARG_POINTER(0);
 	Email    *b = (Email *) PG_GETARG_POINTER(1);
+        
+        int result = 1;
+        if (is_email_lt(a,b) == IS_TRUE) 
+            result = -1;
+        else if (is_email_eq(a,b) == IS_TRUE)
+            result = 0;
 
-//	PG_RETURN_INT32(complex_abs_cmp_internal(a, b));
-	PG_RETURN_INT32(1);
+	PG_RETURN_INT32(result);
 }
 
 
