@@ -41,6 +41,11 @@ int func_is_email_not_same_domain(Email *t1, Email *t2);//(!~) not the same doma
 int strcpy_to_capitalletters(char *tar,char *src);//copy string and convert string into capital letters
 int strcpy_to_lowercase(char *tar,char *src);//copy string and convert string into lowercase
 int strcpy_to(char *tar,char *src);//just copy string
+
+static int is_email_eq(Email *e1, Email *e2); // compare if two emails are equal
+static int is_email_gt(Email *e1, Email *e2); // Is e1 greater than e2.
+static int is_email_lt(Email *e1, Email *e2); //Is e1 less than e2.
+
 //
 
 #define	RET_VALID	1
