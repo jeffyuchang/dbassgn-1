@@ -74,15 +74,19 @@ CREATE TYPE EmailAddress (
 -----------------------------
 
 CREATE TABLE test_email (
-	a	EmailAddress,
-	b	EmailAddress
+	emailId	EmailAddress,
+	username varchar(100),
+	alterEmail	EmailAddress
 );
 
 -- data for user-defined types are just strings in the proper textual
 -- representation.
 
-INSERT INTO test_email VALUES ('jeff@cse.unsw.edu.au', 'young@cse.unsw.edu.au');
-INSERT INTO test_email VALUES ('jeffyu@cse.unsw.edu.au', 'young_son@cse.unsw.edu.au');
+INSERT INTO test_email VALUES ('jeff@cse.unsw.edu.au', 'Jeff Yu', 'jeffyu1@cse.unsw.edu.au');
+INSERT INTO test_email VALUES ('jeffyu@cse.unsw.edu.au', 'Jeff Yu', 'jeffyu2@cse.unsw.edu.au');
+INSERT INTO test_email VALUES ('young@cse.unsw.edu.au', 'Young Son', 'yson@cse.unsw.edu.au');
+INSERT INTO test_email VALUES ('youngson@cse.unsw.edu.au', 'Young Son', 'yson@cse.unsw.edu.au');
+INSERT INTO test_email VALUES ('jas@cse.unsw.edu.au', 'John', 'jas2@cse.unsw.edu.au');
 
 SELECT * FROM test_email;
 
@@ -166,8 +170,18 @@ CREATE OPERATOR CLASS email_ops
         OPERATOR        5       > ,
 	FUNCTION	1	email_cmp(EmailAddress, EmailAddress);			
 
-CREATE INDEX test_cplx_ind ON test_email
-   USING btree(a email_ops);
+CREATE INDEX test_email_index ON test_email
+   USING btree(emailId email_ops);
+
+select * from test_email where emailId = 'JEFF@cse.unsw.edu.au';
+select * from test_email where emailId <> 'JEFF@cse.unsw.edu';
+select * from test_email where emailId <> 'JEFF@cse.unsw.edu.au';
+select * from test_email where emailId ~ 'jas@cse.unsw.edu.au';
+
+select * from test_email where emailId > 'JAS@cse.unsw.edu.au';
+select * from test_email where emailId >= 'JEFF@cse.unsw.edu.au';
+select * from test_email where emailId <= 'JEFF@cse.unsw.edu.au';
+select * from test_email where emailId < 'ZZZ@dd.google.com';
    
 -- clean up the example
 DROP TABLE test_email;

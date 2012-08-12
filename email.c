@@ -203,7 +203,7 @@ email_eq(PG_FUNCTION_ARGS)
 	PG_RETURN_BOOL(is_email_eq(a, b));
 }
 
-int is_email_eq(Email *e1, Email *e2) {
+static int is_email_eq(Email *e1, Email *e2) {
     if ((strcmp(e1->local, e2->local) == 0) 
         && (strcmp(e1->domain, e2->domain) == 0)) {
 	    return IS_TRUE;
@@ -231,7 +231,7 @@ email_gt(PG_FUNCTION_ARGS)
 	PG_RETURN_BOOL(is_email_gt(a, b));
 }
 
-int is_email_gt(Email *e1, Email *e2) {
+static int is_email_gt(Email *e1, Email *e2) {
 	if (strcmp(e1->domain,e2->domain) > 0) {
 		return IS_TRUE;
 	} else if (strcmp(e1->domain, e2->domain) == 0 && strcmp(e1->local, e2->local) > 0) {
@@ -283,7 +283,7 @@ email_lt(PG_FUNCTION_ARGS)
 	PG_RETURN_BOOL(is_email_lt(a,b));
 }
 
-int is_email_lt(Email *e1, Email *e2){
+static int is_email_lt(Email *e1, Email *e2){
 	if (strcmp(e1->domain, e2->domain) < 0) {
 		return true;
 	} else if (strcmp(e1->domain, e2->domain) == 0 && strcmp(e1->local, e2->local) < 0) {
