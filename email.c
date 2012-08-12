@@ -413,7 +413,12 @@ int	email_local_domain_divider_lowercase(char *str,char *slocal,char *sdomain) /
 	{
 		if(*str=='@')
 			break;
-		*slocal++=*str++;
+	  if(*str>='A' && *str<='Z')
+			*slocal='a'+(*str-'A');
+		else *slocal=*str;
+			
+		slocal++;
+		str++;
 	}
 
 	*slocal='\0';
@@ -422,7 +427,12 @@ int	email_local_domain_divider_lowercase(char *str,char *slocal,char *sdomain) /
 	str++;
 	while(*str)
 	{
-		*sdomain++=*str++;
+	  if(*str>='A' && *str<='Z')
+			*sdomain='a'+(*str-'A');
+		else *sdomain=*str;
+		
+		sdomain++;
+		str++;
 	}
 	*sdomain='\0';
 	return IS_TRUE;
