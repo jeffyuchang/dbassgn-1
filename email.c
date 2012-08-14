@@ -189,11 +189,11 @@ email_send(PG_FUNCTION_ARGS)
  * New Operators
  *
  *****************************************************************************/
-int getLocal(char *ret_buf,VarChar *str) {
+static int getLocal(char *ret_buf,VarChar *email) {
 	int len,i;
 	char *ptr;
-	len = GET_VARSIZE(str);
-	ptr=VARDATA(str);
+	len = GET_VARSIZE(email);
+	ptr=VARDATA(email);
 	for(i=0;i<len;i++)
 	{
 		if(*ptr=='@')
@@ -205,11 +205,11 @@ int getLocal(char *ret_buf,VarChar *str) {
 	return i;
 }
 
-int getDomain(char *ret_buf,VarChar *email) {
+static int getDomain(char *ret_buf,VarChar *email) {
 	int len,i,j;
 	char *ptr;
 	len = GET_VARSIZE(email);
-	ptr=VARDATA(str);
+	ptr=VARDATA(email);
 	for(i=0;i<len;i++)
 	{
 		if(*ptr=='@')
@@ -227,6 +227,78 @@ int getDomain(char *ret_buf,VarChar *email) {
 	}
 	ret_buf[j]='\0';
 	return j;
+}
+
+static int is_email_eq(VarChar *email1, VarChar *email2) {
+	
+	char str_local[128],str_domain[128],str1_local[128],str1_domain[128]={0,};
+	
+	getLocal(&str_local,email1);
+	getDomain(&str_domain, email1);
+	
+	getLocal(&str1_local, email2);
+	getDomain(&str1_domain, email2);
+	
+	if (!strcmp(str_local, str1_local) && !strcmp(str_domain, str1_domain)) {
+		return IS_TRUE;
+	}
+	return IS_FALSE;
+}
+
+static int is_email_gt(VarChar *email1, VarChar *email2) {
+	
+	char str_local[128],str_domain[128],str1_local[128],str1_domain[128]={0,};
+	getLocal(&str_local,email1);
+	getDomain(&str_domain, email1);
+	
+	getLocal(&str1_local, email2);
+	getDomain(&str1_domain, email2);
+	
+	int result = IS_FALSE;
+	int domain_cmp, local_cmp;
+	domain_cmp = strcmp(str_domain, str1_domain);
+	local_cmp = strcmp(str_local, str1_local);
+	
+	if (domain_cmp > 0 || (domain_cmp == 0 && local_cmp > 0)) {
+		result = IS_TRUE;
+	}
+	
+	return result;
+}
+
+static int is_email_sd(VarChar *email1, VarChar *email2) {
+	
+	char str_local[128],str_domain[128],str1_local[128],str1_domain[128]={0,};
+	getLocal(&str_local,email1);
+	getDomain(&str_domain, email1);
+	
+	getLocal(&str1_local, email2);
+	getDomain(&str1_domain, email2);
+	
+	if (!strcmp(str_domain, str1_domain)) {
+		return IS_TRUE;
+	}
+	return IS_FALSE;
+}
+
+static int is_email_lt(VarChar *email1, VarChar *email2) {
+	
+	char str_local[128],str_domain[128],str1_local[128],str1_domain[128]={0,};
+	getLocal(&str_local,email1);
+	getDomain(&str_domain, email1);
+	
+	getLocal(&str1_local, email2);
+	getDomain(&str1_domain, email2);
+	
+	int result = IS_FALSE;
+	int domain_cmp, local_cmp;
+	domain_cmp = strcmp(str_domain, str1_domain);
+	local_cmp = strcmp(str_local, str1_local);
+	
+	if (domain_cmp < 0 || (domain_cmp == 0 && (local_cmp < 0))) {
+		result = IS_TRUE;
+	}
+	return result;
 }
 
 
@@ -250,19 +322,6 @@ email_hash(PG_FUNCTION_ARGS)
 }
 
 
-static int is_email_eq(char *str1,int len1, char *str2,int len2) 
-{
-  int i;
-  
-  if(len1!=len2)
-  	return IS_FALSE;
-  
-  for(i=0;i<len1;i++)
-  	if(str1[i]!=str2[i])
-		return IS_FALSE;
-    
-	return IS_TRUE;	
-}
 
 
 PG_FUNCTION_INFO_V1(email_eq);
@@ -274,15 +333,7 @@ email_eq(PG_FUNCTION_ARGS)
 	VarChar *str=PG_GETARG_VARCHAR_P(0);
 	VarChar *str1=PG_GETARG_VARCHAR_P(1);
 	
-	char str_local[128],str_domain[128],str1_local[128],str1_domain[128]={0,};
-	
-	getLocal(&str_local,*str);
-	getDomain(&str_domain, *str);
-	
-	getLocal(&str1_local, *str1);
-	getDomain(&str1_domain,*str1);
-	
-	PG_RETURN_BOOL((!strcmp(str_local,str1_local) && !strcmp(str_domain,str1_domain)));
+	PG_RETURN_BOOL(is_email_eq(str, str1));
 
 	
 }
@@ -295,52 +346,9 @@ email_neq(PG_FUNCTION_ARGS)
 {
 	VarChar *str=PG_GETARG_VARCHAR_P(0);
 	VarChar *str1=PG_GETARG_VARCHAR_P(1);
-	char *result,*result1;
-	int32 len,len1;
-	int result_value=0;
-	
-	len=GET_VARSIZE(str);
-	len1=GET_VARSIZE(str1);
-	result=palloc(len+1);
-	result1=palloc(len1+1);
-	memcpy(result,VARDATA(str),len);
-	memcpy(result1,VARDATA(str1),len1);
-	result[len]='\0';
-	result1[len1]='\0';
-	
-	result_value=!is_email_eq(result,len,result1,len1);
-		
-	pfree(result);
-	pfree(result1);
-	PG_RETURN_BOOL(result_value);
 
-}
+	PG_RETURN_BOOL(!is_email_eq(str, str1));
 
-static int func_strcmp(char* str, char* str1,char end_code)
-{
-	char ch,ch1;
-	
-	do 
-	{ 
-		ch=*str++; 
-		ch1=*str1++; 
- 		if (ch==end_code) 
-		{
-			if(ch==end_code)
-				ch=0;
-			if(ch1==end_code)
-				ch1=0;
- 			return ch-ch1; 
-		}
-        
-	}while(ch==ch1); 
-	
-	if(ch==end_code)
-		ch=0;
-	if(ch1==end_code)
-		ch1=0;
-	
-	return ch-ch1;
 }
 
 
@@ -354,30 +362,6 @@ static int get_email_at_position(char *str,int len)
 }
 
 
-static int is_email_gt(char *str,int len,char *str1,int len1)
-{
-	int pos_at1,pos_at2;
-	int ret=0;
-	
-	pos_at1=get_email_at_position(str,len);
-	pos_at2=get_email_at_position(str1,len1);
-	
-	
-	ret=func_strcmp(&str[pos_at1+1],&str1[pos_at2+1],'\0');
-	
-	if(ret<0)
-		return IS_FALSE;
-	if(ret>0)
-		return IS_TRUE;
-		
-	ret=func_strcmp(str,str1,'@');
-	
-	if(ret>0)
-		return IS_TRUE;
-		
-	return IS_FALSE;
-}
-
 
 PG_FUNCTION_INFO_V1(email_gt);
 
@@ -386,48 +370,11 @@ email_gt(PG_FUNCTION_ARGS)
 {
 	VarChar *str=PG_GETARG_VARCHAR_P(0);
 	VarChar *str1=PG_GETARG_VARCHAR_P(1);
-	char *result,*result1;
-	int32 len,len1;
-	int result_value;
-	
-	len=GET_VARSIZE(str);
-	len1=GET_VARSIZE(str1);
-	result=palloc(len+1);
-	result1=palloc(len1+1);
-	memcpy(result,VARDATA(str),len);
-	memcpy(result1,VARDATA(str1),len1);
-	result[len]='\0';
-	result1[len1]='\0';
-	
-	result_value=is_email_gt(result,len,result1,len1);
-		
-	pfree(result);
-	pfree(result1);
-	PG_RETURN_BOOL(result_value);
+
+	PG_RETURN_BOOL(is_email_gt(str, str1));
 	
 }
 
-
-static int is_email_sd(char *str,int len,char *str1,int len2)
-{
-		int pos_at1=-1,pos_at2=-1;
-		int i;
-		
-		pos_at1=1+get_email_at_position(str,len);
-		pos_at2=1+get_email_at_position(str1,len2);
-		
-		if(pos_at1==-1 || pos_at2==-1)
-			return IS_FALSE;
-			
-		if((len-pos_at1) != (len2-pos_at2))
-			return IS_FALSE;
-		
-		for(i=0;i<(len-pos_at1);i++)
-			if(str[pos_at1+i]!=str1[pos_at2+i])
-					return IS_FALSE;
-		
-		return IS_TRUE;
-}
 
 PG_FUNCTION_INFO_V1(email_sd);
 
@@ -436,24 +383,8 @@ email_sd(PG_FUNCTION_ARGS)
 {
 	VarChar *str=PG_GETARG_VARCHAR_P(0);
 	VarChar *str1=PG_GETARG_VARCHAR_P(1);
-	char *result,*result1;
-	int32 len,len1;
-	int result_value;
-	
-	len=GET_VARSIZE(str);
-	len1=GET_VARSIZE(str1);
-	result=palloc(len+1);
-	result1=palloc(len1+1);
-	memcpy(result,VARDATA(str),len);
-	memcpy(result1,VARDATA(str1),len1);
-	result[len]='\0';
-	result1[len1]='\0';
-	
-	result_value=is_email_sd(result,len,result1,len1);
-		
-	pfree(result);
-	pfree(result1);
-	PG_RETURN_BOOL(result_value);		
+
+	PG_RETURN_BOOL(is_email_sd(str, str1));		
 	
 }
 
@@ -465,61 +396,9 @@ email_nsd(PG_FUNCTION_ARGS)
 
 	VarChar *str=PG_GETARG_VARCHAR_P(0);
 	VarChar *str1=PG_GETARG_VARCHAR_P(1);
-	char *result,*result1;
-	int32 len,len1;
-	int result_value;
-		
-#ifdef	DBG_MSG			
-	FILE *fp;
-#endif
-	
-	len=GET_VARSIZE(str);
-	len1=GET_VARSIZE(str1);
-	result=palloc(len+1);
-	result1=palloc(len1+1);
-	memcpy(result,VARDATA(str),len);
-	memcpy(result1,VARDATA(str1),len1);
-	result[len]='\0';
-	result1[len1]='\0';
-		
-	result_value=!is_email_sd(result,len,result1,len1);
-	
-#ifdef	DBG_MSG			
-	fp=fopen(_DEBUG_PATH_,"rb+");
-	if(fp)
-	{
-		fseek(fp,0,SEEK_END);
-		fprintf(fp,"called email_nsd(%s,%s) ret(%d)\r\n",result,result1,result_value);
-		fclose(fp);
-	}	
-#endif		
-	pfree(result);
-	pfree(result1);
-	PG_RETURN_BOOL(result_value);
 
-}
+	PG_RETURN_BOOL(!is_email_sd(str, str1));
 
-static int is_email_lt(char *str,int len,char *str1,int len1)
-{
-	int pos_at1,pos_at2;
-	int ret=0;
-	
-	pos_at1=get_email_at_position(str,len);
-	pos_at2=get_email_at_position(str1,len1);
-	
-	ret=func_strcmp(&str[pos_at1+1],&str1[pos_at2+1],'\0');
-	
-	if(ret>0)
-		return IS_FALSE;
-	if(ret<0)
-		return IS_TRUE;
-		
-	ret=func_strcmp(str,str1,'@');
-	
-	if(ret<0)
-		return IS_TRUE;
-		
-	return IS_FALSE;
 }
 
 
@@ -531,38 +410,8 @@ email_ge(PG_FUNCTION_ARGS)
 	
 	VarChar *str=PG_GETARG_VARCHAR_P(0);
 	VarChar *str1=PG_GETARG_VARCHAR_P(1);
-	char *result,*result1;
-	int32 len,len1;
-	int result_value;
-		
-#ifdef	DBG_MSG			
-	FILE *fp;
-#endif
 	
-	len=GET_VARSIZE(str);
-	len1=GET_VARSIZE(str1);
-	result=palloc(len+1);
-	result1=palloc(len1+1);
-	memcpy(result,VARDATA(str),len);
-	memcpy(result1,VARDATA(str1),len1);
-	result[len]='\0';
-	result1[len1]='\0';
-	
-	result_value=!is_email_lt(result,len,result1,len1);
-	
-#ifdef	DBG_MSG			
-	fp=fopen(_DEBUG_PATH_,"rb+");
-	if(fp)
-	{
-		fseek(fp,0,SEEK_END);
-		fprintf(fp,"called email_ge(%s,%s) ret(%d)\r\n",result,result1,result_value);
-		fclose(fp);
-	}	
-#endif		
-	pfree(result);
-	pfree(result1);
-	
-	PG_RETURN_BOOL(result_value);
+	PG_RETURN_BOOL(!is_email_lt(str, str1));
 }
 
 
@@ -574,25 +423,8 @@ email_lt(PG_FUNCTION_ARGS)
 	
 	VarChar *str=PG_GETARG_VARCHAR_P(0);
 	VarChar *str1=PG_GETARG_VARCHAR_P(1);
-	char *result,*result1;
-	int32 len,len1;
-	int result_value;
-	
-	len=GET_VARSIZE(str);
-	len1=GET_VARSIZE(str1);
-	result=palloc(len+1);
-	result1=palloc(len1+1);
-	memcpy(result,VARDATA(str),len);
-	memcpy(result1,VARDATA(str1),len1);
-	result[len]='\0';
-	result1[len1]='\0';
-	
-	result_value=is_email_lt(result,len,result1,len1);
-		
-	pfree(result);
-	pfree(result1);
-	
-	PG_RETURN_BOOL(result_value);
+
+	PG_RETURN_BOOL(is_email_lt(str, str1));
 }
 
 
@@ -604,24 +436,8 @@ email_le(PG_FUNCTION_ARGS)
 
 	VarChar *str=PG_GETARG_VARCHAR_P(0);
 	VarChar *str1=PG_GETARG_VARCHAR_P(1);
-	char *result,*result1;
-	int32 len,len1;
-	int result_value;
-		
-	len=GET_VARSIZE(str);
-	len1=GET_VARSIZE(str1);
-	result=palloc(len+1);
-	result1=palloc(len1+1);
-	memcpy(result,VARDATA(str),len);
-	memcpy(result1,VARDATA(str1),len1);
-	result[len]='\0';
-	result1[len1]='\0';
-	
-	result_value=!is_email_gt(result,len,result1,len1);
-			
-	pfree(result);
-	pfree(result1);
-	PG_RETURN_BOOL(result_value);
+
+	PG_RETURN_BOOL(!is_email_gt(str, str1));
 }
 
 PG_FUNCTION_INFO_V1(email_cmp);
@@ -630,30 +446,14 @@ Datum
 email_cmp(PG_FUNCTION_ARGS)
 {
 	VarChar *str=PG_GETARG_VARCHAR_P(0);
-	VarChar *str1=PG_GETARG_VARCHAR_P(1);
-	char *result,*result1;
-	int32 len,len1;
-	int result_value;
+	VarChar *str1=PG_GETARG_VARCHAR_P(1);	
 	
-	len=GET_VARSIZE(str);
-	len1=GET_VARSIZE(str1);
-	result=palloc(len+1);
-	result1=palloc(len1+1);
-
-	memcpy(result,VARDATA(str),len);
-	memcpy(result1,VARDATA(str1),len1);
-	result[len]='\0';
-	result1[len1]='\0';
+	int result_value = 0;
 	
-	
-	if(is_email_lt(result,len,result1,len1)==IS_TRUE)  //<
+	if(is_email_lt(str, str1)==IS_TRUE)  //<
 		result_value=-1;
-	else if(is_email_gt(result,len,result1,len1)==IS_TRUE)  //>
-					result_value=1;
-					else result_value=0;
-	
-	pfree(result);
-	pfree(result1);
+	else if(is_email_gt(str, str1)==IS_TRUE)  //>
+		result_value=1;
 
 	PG_RETURN_INT32(result_value);
 	
