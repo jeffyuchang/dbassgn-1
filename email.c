@@ -315,7 +315,7 @@ email_hash(PG_FUNCTION_ARGS)
 	rt=palloc(len+1);
 	memcpy(rt,VARDATA(str),len);
 	rt[len]='\0';
-	hash_val=string_hash(rt,len);
+	hash_val=hash_any(rt,len);
 	pfree(rt);
 
 	PG_RETURN_INT32(hash_val);

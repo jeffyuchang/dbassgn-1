@@ -82,26 +82,26 @@ CREATE TABLE test_email (
 -- data for user-defined types are just strings in the proper textual
 -- representation.
 
--- INSERT INTO test_email VALUES ('jeff@cse.unsw.edu.au', 100);
--- INSERT INTO test_email VALUES ('yung@cse.unsw.edu.au',99);
--- INSERT INTO test_email VALUES ('jeffyu@cse.unsw.edu.au',98);
--- INSERT INTO test_email VALUES ('young_son@cse.unsw.edu.au',97);
--- INSERT INTO test_email VALUES ('jas@cse.unsw.edu.au',96);
--- INSERT INTO test_email VALUES ('cheng@CSE.unsw.edu.au',95);
--- INSERT INTO test_email VALUES ('kai@cse.unsw.edu.au',94);
--- INSERT INTO test_email VALUES ('khan@cse.unsw.edu.au',93);
--- INSERT INTO test_email VALUES ('blacktea@cse.unsw.edu.au',92);
--- INSERT INTO test_email VALUES ('whitetea@cse.unsw.edu.au',91);
--- INSERT INTO test_email VALUES ('whitetea@cse.unsw.edu.au',90);
--- INSERT INTO test_email VALUES ('ceo@microsoft.com',90);
--- INSERT INTO test_email VALUES ('whitetea@cse.usyd.edu.au',90);
--- INSERT INTO test_email VALUES ('-whitetea@cse.unsw.edu.au',90);
--- INSERT INTO test_email VALUES ('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@cse.unsw.edu.au',90);
--- INSERT INTO test_email VALUES ('white@xxx.edu.au',90);
--- INSERT INTO test_email VALUES ('tea@abc.com.au',90);
--- INSERT INTO test_email VALUES ('chall@abc.com.au',90);
+ INSERT INTO test_email VALUES ('jeff@cse.unsw.edu.au', 100);
+ INSERT INTO test_email VALUES ('yung@cse.unsw.edu.au',99);
+ INSERT INTO test_email VALUES ('jeffyu@cse.unsw.edu.au',98);
+ INSERT INTO test_email VALUES ('young_son@cse.unsw.edu.au',97);
+ INSERT INTO test_email VALUES ('jas@cse.unsw.edu.au',96);
+ INSERT INTO test_email VALUES ('cheng@CSE.unsw.edu.au',95);
+ INSERT INTO test_email VALUES ('kai@cse.unsw.edu.au',94);
+ INSERT INTO test_email VALUES ('khan@cse.unsw.edu.au',93);
+ INSERT INTO test_email VALUES ('blacktea@cse.unsw.edu.au',92);
+ INSERT INTO test_email VALUES ('whitetea@cse.unsw.edu.au',91);
+ INSERT INTO test_email VALUES ('whitetea@cse.unsw.edu.au',90);
+ INSERT INTO test_email VALUES ('ceo@microsoft.com',90);
+ INSERT INTO test_email VALUES ('whitetea@cse.usyd.edu.au',90);
+ INSERT INTO test_email VALUES ('-whitetea@cse.unsw.edu.au',90);
+ INSERT INTO test_email VALUES ('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@cse.unsw.edu.au',90);
+ INSERT INTO test_email VALUES ('white@xxx.edu.au',90);
+ INSERT INTO test_email VALUES ('tea@abc.com.au',90);
+ INSERT INTO test_email VALUES ('chall@abc.com.au',90);
 
--- SELECT * FROM test_email;
+ SELECT * FROM test_email;
 
 
 -----------------------------
@@ -195,12 +195,18 @@ CREATE OPERATOR CLASS hash_ops
 	OPERATOR	1	=,
 	FUNCTION	1	email_hash(EmailAddress);
 
-CREATE INDEX test_cplx_ind2 ON test_email
+CREATE INDEX test_email_hash_ind ON test_email
    USING hash (mailadd hash_ops);
 
-CREATE INDEX test_cplx_ind ON test_email
+CREATE INDEX test_email_ind ON test_email
    USING btree(mailadd email_ops);
 
+
+ SELECT * FROM test_email WHERE emailadd = 'JEFF@cse.unsw.edu.au';
+ SELECT * FROM test_email WHERE emailadd <> 'JEFF@cse.unsw.edu.au';
+ SELECT * FROM test_email WHERE emailadd ~ 'JEFF@cse.unsw.edu.au';
+ SELECT * FROM test_email WHERE emailadd > 'yung@cse.unsw.edu.au';
+
 -- clean up the example
--- DROP TABLE test_email;
--- DROP TYPE EmailAddress CASCADE;
+ DROP TABLE test_email;
+ DROP TYPE EmailAddress CASCADE;
