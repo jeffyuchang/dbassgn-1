@@ -202,10 +202,10 @@ CREATE INDEX test_email_ind ON test_email
    USING btree(mailadd email_ops);
 
 
- SELECT * FROM test_email WHERE emailadd = 'JEFF@cse.unsw.edu.au';
- SELECT * FROM test_email WHERE emailadd <> 'JEFF@cse.unsw.edu.au';
- SELECT * FROM test_email WHERE emailadd ~ 'JEFF@cse.unsw.edu.au';
- SELECT * FROM test_email WHERE emailadd > 'yung@cse.unsw.edu.au';
+ SELECT * FROM test_email WHERE mailadd = 'JEFF@cse.unsw.edu.au';
+ SELECT * FROM test_email WHERE mailadd <> 'JEFF@cse.unsw.edu.au';
+ SELECT * FROM test_email WHERE mailadd ~ 'JEFF@cse.unsw.edu.au';
+ SELECT * FROM test_email WHERE mailadd > 'yung@cse.unsw.edu.au';
 
 -- clean up the example
  DROP TABLE test_email;
