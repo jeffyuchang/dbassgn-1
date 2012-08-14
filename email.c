@@ -24,6 +24,8 @@ int email_grammar_checker(char *string);// check email syntax
 int strcpy_to_lowercase(char *tar,char *src);//copy string and convert string into lowercase
 int strcpy_to_lowercase_len(char *tar,char *src,int len);//copy string and convert string into lowercase
 int strcpy_to(char *tar,char *src);//just copy string
+
+extern Datum hash_any(const char *k, int keylen);
 //
 
 #define	RET_VALID	1
@@ -233,11 +235,11 @@ static int is_email_eq(VarChar *email1, VarChar *email2) {
 	
 	char str_local[128],str_domain[128],str1_local[128],str1_domain[128]={0,};
 	
-	getLocal(&str_local,email1);
-	getDomain(&str_domain, email1);
+	getLocal(str_local,email1);
+	getDomain(str_domain, email1);
 	
-	getLocal(&str1_local, email2);
-	getDomain(&str1_domain, email2);
+	getLocal(str1_local, email2);
+	getDomain(str1_domain, email2);
 	
 	if (!strcmp(str_local, str1_local) && !strcmp(str_domain, str1_domain)) {
 		return IS_TRUE;
@@ -248,14 +250,15 @@ static int is_email_eq(VarChar *email1, VarChar *email2) {
 static int is_email_gt(VarChar *email1, VarChar *email2) {
 	
 	char str_local[128],str_domain[128],str1_local[128],str1_domain[128]={0,};
-	getLocal(&str_local,email1);
-	getDomain(&str_domain, email1);
-	
-	getLocal(&str1_local, email2);
-	getDomain(&str1_domain, email2);
-	
 	int result = IS_FALSE;
 	int domain_cmp, local_cmp;
+	
+	getLocal(str_local,email1);
+	getDomain(str_domain, email1);
+	
+	getLocal(str1_local, email2);
+	getDomain(str1_domain, email2);
+	
 	domain_cmp = strcmp(str_domain, str1_domain);
 	local_cmp = strcmp(str_local, str1_local);
 	
@@ -269,11 +272,11 @@ static int is_email_gt(VarChar *email1, VarChar *email2) {
 static int is_email_sd(VarChar *email1, VarChar *email2) {
 	
 	char str_local[128],str_domain[128],str1_local[128],str1_domain[128]={0,};
-	getLocal(&str_local,email1);
-	getDomain(&str_domain, email1);
+	getLocal(str_local,email1);
+	getDomain(str_domain, email1);
 	
-	getLocal(&str1_local, email2);
-	getDomain(&str1_domain, email2);
+	getLocal(str1_local, email2);
+	getDomain(str1_domain, email2);
 	
 	if (!strcmp(str_domain, str1_domain)) {
 		return IS_TRUE;
@@ -284,14 +287,15 @@ static int is_email_sd(VarChar *email1, VarChar *email2) {
 static int is_email_lt(VarChar *email1, VarChar *email2) {
 	
 	char str_local[128],str_domain[128],str1_local[128],str1_domain[128]={0,};
-	getLocal(&str_local,email1);
-	getDomain(&str_domain, email1);
-	
-	getLocal(&str1_local, email2);
-	getDomain(&str1_domain, email2);
-	
 	int result = IS_FALSE;
 	int domain_cmp, local_cmp;
+	
+	getLocal(str_local,email1);
+	getDomain(str_domain, email1);
+	
+	getLocal(str1_local, email2);
+	getDomain(str1_domain, email2);
+	
 	domain_cmp = strcmp(str_domain, str1_domain);
 	local_cmp = strcmp(str_local, str1_local);
 	
@@ -350,17 +354,6 @@ email_neq(PG_FUNCTION_ARGS)
 	PG_RETURN_BOOL(!is_email_eq(str, str1));
 
 }
-
-
-static int get_email_at_position(char *str,int len)
-{
-	int i;
-	for(i=0;i<len;i++)
-		if(str[i]=='@')
-			return i;
-	return 0;	
-}
-
 
 
 PG_FUNCTION_INFO_V1(email_gt);
