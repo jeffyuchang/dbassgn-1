@@ -59,12 +59,13 @@ CREATE FUNCTION email_send(EmailAddress)
 -- memory block required to hold the type (we need two 8-byte doubles).
 
 CREATE TYPE EmailAddress (
-   internallength = 256,
+   internallength = variable,
    input = email_in,
    output = email_out,
    receive = email_recv,
    send = email_send,
-   alignment = char 
+   alignment = int4, 
+   storage = extended
 );
 
 
@@ -74,21 +75,33 @@ CREATE TYPE EmailAddress (
 -----------------------------
 
 CREATE TABLE test_email (
-	emailId	EmailAddress,
-	username varchar(100),
-	alterEmail	EmailAddress
+	mailadd	EmailAddress,
+	wam	integer
 );
 
 -- data for user-defined types are just strings in the proper textual
 -- representation.
 
-INSERT INTO test_email VALUES ('jeff@cse.unsw.edu.au', 'Jeff Yu', 'jeffyu1@cse.unsw.edu.au');
-INSERT INTO test_email VALUES ('jeffyu@cse.unsw.edu.au', 'Jeff Yu', 'jeffyu2@cse.unsw.edu.au');
-INSERT INTO test_email VALUES ('young@cse.unsw.edu.au', 'Young Son', 'yson@cse.unsw.edu.au');
-INSERT INTO test_email VALUES ('youngson@cse.unsw.edu.au', 'Young Son', 'yson@cse.unsw.edu.au');
-INSERT INTO test_email VALUES ('jas@cse.unsw.edu.au', 'John', 'jas2@cse.unsw.edu.au');
+-- INSERT INTO test_email VALUES ('jeff@cse.unsw.edu.au', 100);
+-- INSERT INTO test_email VALUES ('yung@cse.unsw.edu.au',99);
+-- INSERT INTO test_email VALUES ('jeffyu@cse.unsw.edu.au',98);
+-- INSERT INTO test_email VALUES ('young_son@cse.unsw.edu.au',97);
+-- INSERT INTO test_email VALUES ('jas@cse.unsw.edu.au',96);
+-- INSERT INTO test_email VALUES ('cheng@CSE.unsw.edu.au',95);
+-- INSERT INTO test_email VALUES ('kai@cse.unsw.edu.au',94);
+-- INSERT INTO test_email VALUES ('khan@cse.unsw.edu.au',93);
+-- INSERT INTO test_email VALUES ('blacktea@cse.unsw.edu.au',92);
+-- INSERT INTO test_email VALUES ('whitetea@cse.unsw.edu.au',91);
+-- INSERT INTO test_email VALUES ('whitetea@cse.unsw.edu.au',90);
+-- INSERT INTO test_email VALUES ('ceo@microsoft.com',90);
+-- INSERT INTO test_email VALUES ('whitetea@cse.usyd.edu.au',90);
+-- INSERT INTO test_email VALUES ('-whitetea@cse.unsw.edu.au',90);
+-- INSERT INTO test_email VALUES ('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@cse.unsw.edu.au',90);
+-- INSERT INTO test_email VALUES ('white@xxx.edu.au',90);
+-- INSERT INTO test_email VALUES ('tea@abc.com.au',90);
+-- INSERT INTO test_email VALUES ('chall@abc.com.au',90);
 
-SELECT * FROM test_email;
+-- SELECT * FROM test_email;
 
 
 -----------------------------
@@ -116,6 +129,13 @@ CREATE FUNCTION email_sd(EmailAddress, EmailAddress) RETURNS bool
 CREATE FUNCTION email_nsd(EmailAddress, EmailAddress) RETURNS bool
    AS '_OBJWD_/email' LANGUAGE C IMMUTABLE STRICT;
 
+CREATE FUNCTION email_hash(EmailAddress)
+   RETURNS int4 
+   AS '_OBJWD_/email'
+   LANGUAGE C IMMUTABLE STRICT;
+
+
+
 CREATE OPERATOR < (
    leftarg = EmailAddress, rightarg = EmailAddress, procedure = email_lt,
    commutator = > , negator = >= ,
@@ -130,10 +150,10 @@ CREATE OPERATOR = (
    leftarg = EmailAddress, rightarg = EmailAddress, procedure = email_eq,
    commutator = = ,
    negator = <> ,
-   restrict = eqsel, join = eqjoinsel
+   restrict = eqsel, join = eqjoinsel, hashes
 );
 CREATE OPERATOR >= (
-   leftarg = EmailAddress, rightarg = EmailAddress, procedure = email_neq,
+   leftarg = EmailAddress, rightarg = EmailAddress, procedure = email_ge,
    commutator = <= , negator = < ,
    restrict = scalargtsel, join = scalargtjoinsel
 );
@@ -168,21 +188,19 @@ CREATE OPERATOR CLASS email_ops
         OPERATOR        3       = ,
         OPERATOR        4       >= ,
         OPERATOR        5       > ,
-	FUNCTION	1	email_cmp(EmailAddress, EmailAddress);			
+	FUNCTION	1	email_cmp(EmailAddress, EmailAddress);
 
-CREATE INDEX test_email_index ON test_email
-   USING btree(emailId email_ops);
+CREATE OPERATOR CLASS hash_ops 
+	DEFAULT FOR TYPE EmailAddress USING hash AS
+	OPERATOR	1	=,
+	FUNCTION	1	email_hash(EmailAddress);
 
-select * from test_email where emailId = 'JEFF@cse.unsw.edu.au';
-select * from test_email where emailId <> 'JEFF@cse.unsw.edu';
-select * from test_email where emailId <> 'JEFF@cse.unsw.edu.au';
-select * from test_email where emailId ~ 'jas@cse.unsw.edu.au';
+CREATE INDEX test_cplx_ind2 ON test_email
+   USING hash (mailadd hash_ops);
 
-select * from test_email where emailId > 'JAS@cse.unsw.edu.au';
-select * from test_email where emailId >= 'JEFF@cse.unsw.edu.au';
-select * from test_email where emailId <= 'JEFF@cse.unsw.edu.au';
-select * from test_email where emailId < 'ZZZ@dd.google.com';
-   
+CREATE INDEX test_cplx_ind ON test_email
+   USING btree(mailadd email_ops);
+
 -- clean up the example
-DROP TABLE test_email;
-DROP TYPE EmailAddress CASCADE;
+-- DROP TABLE test_email;
+-- DROP TYPE EmailAddress CASCADE;
