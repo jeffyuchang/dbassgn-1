@@ -9,7 +9,9 @@
 
 #include "postgres.h"
 
-#include "fmgr.h"
+//#include "fmgr.h"
+#include "utils/builtins.h"
+#include "access/hash.h"
 #include "libpq/pqformat.h"		/* needed for send/recv functions */
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,7 +27,6 @@ int strcpy_to_lowercase(char *tar,char *src);//copy string and convert string in
 int strcpy_to_lowercase_len(char *tar,char *src,int len);//copy string and convert string into lowercase
 int strcpy_to(char *tar,char *src);//just copy string
 
-extern Datum hash_any(const char *k, int keylen);
 //
 
 #define	RET_VALID	1
@@ -126,34 +127,17 @@ PG_FUNCTION_INFO_V1(email_recv);
 Datum
 email_recv(PG_FUNCTION_ARGS)
 {
-	StringInfo	buf = (StringInfo) PG_GETARG_POINTER(0);
-	//Email    *result;
-	//char *pLocal,*pDomain;
-	//FILE *fp;
+        StringInfo buf = (StringInfo) PG_GETARG_POINTER(0);
+        VarChar *result;
+        char *str;
+        int nbytes;
 
-//	result = (Email *) palloc(sizeof(Email));
-/*
-	fp=fopen(_DEBUG_PATH_,"rb+");
-	if(fp)
-	{
-		fseek(fp,0,SEEK_END);
-		fprintf(fp,"called email_recv\r\n");
-		fclose(fp);
-	}	
-	*/
-/*
-#ifndef	_YS_USE_BYTES
-	pLocal=pg_getmsgstring(buf);
-	pDomain=pg_getmsgstring(buf);
-#else
-	pLocal=pg_getmsgbytes(buf,128);
-	pDomain=pg_getmsgbytes(buf,128);
-#endif
-	strcpy_to(result->local,pLocal);
-	strcpy_to(result->domain,pDomain);
-*/
-	
-	PG_RETURN_POINTER(buf);
+        str=pq_getmsgtext(buf,buf->len-buf->cursor,&nbytes);
+        result=(VarChar*) palloc((nbytes)+VARHDRSZ);
+        SET_VARSIZE(result,nbytes+VARHDRSZ);
+        memcpy(VARDATA(result),str,nbytes);
+        pfree(str);
+        PG_RETURN_VARCHAR_P(result);
 }
 
 PG_FUNCTION_INFO_V1(email_send);
@@ -161,30 +145,7 @@ PG_FUNCTION_INFO_V1(email_send);
 Datum
 email_send(PG_FUNCTION_ARGS)
 {
-	//Email    *email = (Email *) PG_GETARG_POINTER(0);
-	StringInfoData buf;	
-//	FILE *fp;
-	pq_begintypsend(&buf);
-	/*
-	fp=fopen(_DEBUG_PATH_,"rb+");
-	if(fp)
-	{
-		fseek(fp,0,SEEK_END);
-		fprintf(fp,"called email_recv\r\n");
-		fclose(fp);
-	}	
-	*/
-/*
-#ifndef	_YS_USE_BYTES
-	pg_sendstring(&buf,email->local);
-	pg_sendstring(&buf,email->domain);
-#else
-	pg_sendbytes(&buf,email->local,128);
-	pg_sendbytes(&buf,email->domain,128);
-#endif 
-*/
-
-	PG_RETURN_BYTEA_P(pq_endtypsend(&buf));
+	return textsend(fcinfo);
 }
 
 /*****************************************************************************
