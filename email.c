@@ -152,23 +152,7 @@ email_send(PG_FUNCTION_ARGS)
  * New Operators
  *
  *****************************************************************************/
-static int getLocal(char *ret_buf,VarChar *email) {
-	int len,i;
-	char *ptr;
-	len = GET_VARSIZE(email);
-	ptr=VARDATA(email);
-	for(i=0;i<len;i++)
-	{
-		if(*ptr=='@')
-			break;
-		ret_buf[i]=*ptr;
-		ptr++;
-	}
-	ret_buf[i]='\0';
-	return i;
-}
-
-static int getDomain(char *ret_buf,VarChar *email) {
+static int getLocal_Domain(char *ret_local,char *ret_domain,VarChar *email) {
 	int len,i,j;
 	char *ptr;
 	len = GET_VARSIZE(email);
@@ -180,15 +164,17 @@ static int getDomain(char *ret_buf,VarChar *email) {
 			ptr++;
 			break;
 		}
+		ret_local[i]=*ptr;
 		ptr++;
 	}
-
+	ret_local[i]='\0';
 	for(j=0;j<len-i-1;j++)
 	{
-		ret_buf[j]=*ptr;
+		ret_domain[j]=*ptr;
 		ptr++;
 	}
-	ret_buf[j]='\0';
+	ret_domain[j]='\0';
+//	elog(LOG,"[%s]=[%s]",ret_local,ret_domain);
 	return j;
 }
 
@@ -196,12 +182,9 @@ static int is_email_eq(VarChar *email1, VarChar *email2) {
 	
 	char str_local[128],str_domain[128],str1_local[128],str1_domain[128]={0,};
 	
-	getLocal(str_local,email1);
-	getDomain(str_domain, email1);
-	
-	getLocal(str1_local, email2);
-	getDomain(str1_domain, email2);
-	
+	getLocal_Domain(str_local,str_domain,email1);	
+	getLocal_Domain(str1_local,str1_domain,email2);
+
 	if (!strcmp(str_local, str1_local) && !strcmp(str_domain, str1_domain)) {
 		return IS_TRUE;
 	}
@@ -214,11 +197,8 @@ static int is_email_gt(VarChar *email1, VarChar *email2) {
 	int result = IS_FALSE;
 	int domain_cmp, local_cmp;
 	
-	getLocal(str_local,email1);
-	getDomain(str_domain, email1);
-	
-	getLocal(str1_local, email2);
-	getDomain(str1_domain, email2);
+	getLocal_Domain(str_local,str_domain,email1);
+	getLocal_Domain(str1_local,str1_domain, email2);
 	
 	domain_cmp = strcmp(str_domain, str1_domain);
 	local_cmp = strcmp(str_local, str1_local);
@@ -233,11 +213,8 @@ static int is_email_gt(VarChar *email1, VarChar *email2) {
 static int is_email_sd(VarChar *email1, VarChar *email2) {
 	
 	char str_local[128],str_domain[128],str1_local[128],str1_domain[128]={0,};
-	getLocal(str_local,email1);
-	getDomain(str_domain, email1);
-	
-	getLocal(str1_local, email2);
-	getDomain(str1_domain, email2);
+	getLocal_Domain(str_local,str_domain,email1);
+	getLocal_Domain(str1_local,str1_domain, email2);
 	
 	if (!strcmp(str_domain, str1_domain)) {
 		return IS_TRUE;
@@ -251,11 +228,8 @@ static int is_email_lt(VarChar *email1, VarChar *email2) {
 	int result = IS_FALSE;
 	int domain_cmp, local_cmp;
 	
-	getLocal(str_local,email1);
-	getDomain(str_domain, email1);
-	
-	getLocal(str1_local, email2);
-	getDomain(str1_domain, email2);
+	getLocal_Domain(str_local,str_domain,email1);
+	getLocal_Domain(str1_local,str1_domain, email2);
 	
 	domain_cmp = strcmp(str_domain, str1_domain);
 	local_cmp = strcmp(str_local, str1_local);
@@ -280,7 +254,7 @@ email_hash(PG_FUNCTION_ARGS)
 	rt=palloc(len+1);
 	memcpy(rt,VARDATA(str),len);
 	rt[len]='\0';
-	hash_val=hash_any(rt,len);
+	hash_val=hash_any((unsigned char*)rt,len);
 	pfree(rt);
 
 	PG_RETURN_INT32(hash_val);
